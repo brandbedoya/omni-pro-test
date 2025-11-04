@@ -1,7 +1,7 @@
 
 # 🧩 Omni-Pro AWS Challenge — Serverless Email Marketing
 
-## 🏗️ Descripción General
+## Descripción General
 Este proyecto implementa un sistema **serverless en AWS** para procesamiento de correos electrónicos a partir de archivos CSV, cumpliendo con los requerimientos funcionales y no funcionales del reto **Python + AWS (FastAPI + GraphQL + SQS + DynamoDB + SES)**.
 
 ---
@@ -63,11 +63,11 @@ curl -X POST "https://<api-id>.execute-api.us-east-1.amazonaws.com/dev/upload"  
 
 Ejemplo de prueba en Postman:
 
-![Postman Upload](68e75791-ff69-43f4-b575-5dd88b12210c.png)
+![Postman Upload](img/upload.png)
 
 Resultado en DynamoDB tras ejecución:
 
-![DynamoDB States](7cf3ccd3-e8c9-4f9d-bdb6-8940d5262719.png)
+![DynamoDB States](img/dynamo.png)
 
 📏 **Tamaño máximo permitido:** 5 MB  
 Si el archivo excede el límite, devuelve HTTP 400 con el mensaje:
@@ -113,11 +113,11 @@ Consulta los estados de envío por estado y rango de fechas.
 
 Consulta GraphQL con variables (filtrado por estado y rango de fechas):
 
-![Postman GraphQL Variables](c319f3cc-155b-4341-af8b-9fd206c288dc.png)
+![Postman GraphQL Variables](img/graphql-variables.png)
 
 Consulta GraphQL directa sin variables:
 
-![Postman GraphQL Simple](34d74276-830f-4b9a-87fd-ede9f97448df.png)
+![Postman GraphQL Simple](img/graphql-simple.png)
 
 ---
 
@@ -192,7 +192,7 @@ Salidas principales (`Outputs`):
 
 Ejecución del worker procesando la cola de SQS, validando idempotencia y actualizaciones de estado en DynamoDB:
 
-![CloudWatch Logs](dbf002a8-9027-4977-94ef-b0321232d79c.png)
+![CloudWatch Logs](img/cloudwatch.png)
 
 ---
 
@@ -203,7 +203,7 @@ La API documentada automáticamente con **FastAPI** y disponible en:
 https://3a5f7c9mja.execute-api.us-east-1.amazonaws.com/dev/docs
 ```
 
-![Swagger Docs](c37b9898-9024-4ccc-a162-06242b7ec0e0.png)
+![Swagger Docs](img/swagger.png)
 
 ---
 

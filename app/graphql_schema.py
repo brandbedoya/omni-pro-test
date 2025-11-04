@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import List, Optional
 
 import strawberry
+
 from .models import EmailStatus as EmailStatusEnum
 from .services import list_email_status_paginated
 
@@ -35,20 +36,23 @@ class EmailRecordPage:
 
 @strawberry.type
 class Query:
-    @strawberry.field(name="listEmailStatus")  # conserva nombre público GraphQL
+    @strawberry.field(name="listEmailStatus")
     def list_email_status(
         self,
         status: Optional[List[EmailStatusGQLEnum]] = None,
-        from_date: Optional[datetime] = strawberry.argument(
-            name="fromDate", default=None
-        ),
-        to_date: Optional[datetime] = strawberry.argument(name="toDate", default=None),
+        from_date: Optional[datetime] = None,
+        to_date: Optional[datetime] = None,
         limit: int = 50,
-        next_token: Optional[str] = strawberry.argument(name="nextToken", default=None),
+        next_token: Optional[str] = None,
     ) -> EmailRecordPage:
         """
-        Lista los envíos filtrando por estado y rango de fechas, con soporte de paginación.
+        Lista envíos filtrando por:
+        - status: uno o varios estados
+        - fromDate / toDate: rango de fechas de creación
+        - limit: tamaño de página
+        - nextToken: token de paginación (opcional)
         """
+
         records, next_token_val = list_email_status_paginated(
             status=[EmailStatusEnum(s.value) for s in status] if status else None,
             from_date=from_date,
