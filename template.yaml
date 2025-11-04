@@ -1,0 +1,220 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless Challenge - Python + AWS (FastAPI + GraphQL + SQS + DynamoDB + SES)
+
+Globals:
+  Function:
+    Runtime: python3.10
+    Timeout: 30
+    MemorySize: 256
+    Architectures:
+      - x86_64
+    Tracing: Active
+    Environment:
+      Variables:
+        EMAILS_TABLE_NAME: !Ref EmailsTable
+        EMAIL_QUEUE_URL: !Ref EmailQueue
+        AWS_XRAY_SDK_ENABLED: 'true'
+        SQLALCHEMY_DATABASE_URL: "sqlite:////tmp/emails.db"
+        ROOT_PATH: "/dev"
+        LOG_LEVEL: INFO
+
+Resources:
+  #######################################################
+  # API HTTP (FastAPI + GraphQL) en una sola Lambda
+  #######################################################
+  AppApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+      TracingEnabled: true
+      EndpointConfiguration: REGIONAL
+      BinaryMediaTypes:
+        - "multipart/form-data"
+
+  AppFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: lambda_app.handler
+      Description: FastAPI app (REST /upload + /graphql) para email marketing
+      Role: !GetAtt AppFunctionRole.Arn
+      Events:
+        AnyEvent:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AppApi
+            Path: /{proxy+}
+            Method: ANY
+
+
+  AppFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: AppFunctionDynamoSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Escribir/leer estados en DynamoDB (tabla + índice)
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:GetItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt EmailsTable.Arn
+                  - !Sub "${EmailsTable.Arn}/index/*"
+              # Publicar un mensaje por email en la cola
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt EmailQueue.Arn
+
+
+  #######################################################
+  # SQS Queue + Dead Letter Queue (DLQ)
+  #######################################################
+  EmailDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: email-dlq
+      MessageRetentionPeriod: 1209600 # 14 días
+
+  EmailQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: email-queue
+      VisibilityTimeout: 60
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt EmailDLQ.Arn
+        maxReceiveCount: 5
+
+  #######################################################
+  # Lambda Worker que procesa la cola de emails
+  #######################################################
+  WorkerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: worker_lambda.handler
+      Description: Lambda worker que consume SQS, envía emails y actualiza estados
+      Role: !GetAtt WorkerFunctionRole.Arn
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt EmailQueue.Arn
+            BatchSize: 10
+            Enabled: true
+
+  WorkerFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: WorkerDynamoSQSSesPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              # Leer/actualizar estados en DynamoDB
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:Query
+                Resource: !GetAtt EmailsTable.Arn
+              # Permisos para que el trigger SQS funcione
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt EmailQueue.Arn
+              # Envío de emails via SES
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: "*"
+
+  #######################################################
+  # DynamoDB: tabla para estados de envío de email
+  #######################################################
+  EmailsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: emails
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: batch_id
+          AttributeType: S
+        - AttributeName: email_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+        - AttributeName: created_at
+          AttributeType: S
+      KeySchema:
+        - AttributeName: batch_id
+          KeyType: HASH
+        - AttributeName: email_id
+          KeyType: RANGE
+      GlobalSecondaryIndexes:
+        # GSI para consultar por estado + fecha (para GraphQL listEmailStatus)
+        - IndexName: StatusCreatedAtIndex
+          KeySchema:
+            - AttributeName: status
+              KeyType: HASH
+            - AttributeName: created_at
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  #######################################################
+  # Bucket S3 para subir el CSV via pre-signed URL
+  #######################################################
+  CsvBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-csv-bucket"
+      VersioningConfiguration:
+        Status: Suspended
+
+Outputs:
+  ApiUrl:
+    Description: URL base de la API (FastAPI + GraphQL)
+    Value: !Sub "https://${AppApi}.execute-api.${AWS::Region}.amazonaws.com/dev"
+  EmailsTableName:
+    Description: Nombre de la tabla DynamoDB donde se guardan los estados de envío
+    Value: !Ref EmailsTable
+  EmailQueueUrl:
+    Description: URL de la cola SQS principal de emails
+    Value: !Ref EmailQueue
+  CsvBucketName:
+    Description: Nombre del bucket S3 para almacenar CSV (si se usa pre-signed URL)
+    Value: !Ref CsvBucket

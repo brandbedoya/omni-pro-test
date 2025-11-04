@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+strawberry-graphql[fastapi]
+python-multipart
+email-validator
+mangum
+boto3
+pytest
+moto
