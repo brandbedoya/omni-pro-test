@@ -10,15 +10,14 @@ Este proyecto implementa un sistema **serverless en AWS** para procesamiento de 
 
 ```mermaid
 flowchart TD
-    U[Usuario / Postman] -->|CSV multipart| A[API Gateway]
-    A -->|invoca| L1[Lambda AppFunction (FastAPI)]
-    L1 -->|PutItem + SendMessage| D[(DynamoDB)]
-    L1 -->|Publica mensaje| Q[SQS Queue]
-    Q -->|Trigger automático| L2[Lambda WorkerFunction]
-    L2 -->|UpdateItem estado SENT/ERROR| D
-    L2 -->|Logs / métricas| CW[CloudWatch]
-    Q --> DLQ[Dead Letter Queue]
-```
+    U["Usuario / Postman"] -->|"CSV multipart"| A["API Gateway"]
+    A -->|"invoca"| L1["Lambda AppFunction (FastAPI)"]
+    L1 -->|"PutItem + SendMessage"| D["DynamoDB"]
+    L1 -->|"Publica mensaje"| Q["SQS Queue"]
+    Q -->|"Trigger automático"| L2["Lambda WorkerFunction"]
+    L2 -->|"UpdateItem estado SENT/ERROR"| D
+    L2 -->|"Logs / métricas"| CW["CloudWatch"]
+    Q --> DLQ["Dead Letter Queue"]
 
 ---
 
