@@ -18,6 +18,7 @@ flowchart TD
     L2 -->|"UpdateItem estado SENT/ERROR"| D;
     L2 -->|"Logs / métricas"| CW["CloudWatch"];
     Q --> DLQ["Dead Letter Queue"];
+```
 
 ---
 
