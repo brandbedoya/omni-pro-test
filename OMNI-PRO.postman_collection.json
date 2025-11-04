@@ -1,0 +1,82 @@
+{
+	"info": {
+		"_postman_id": "9aa4c958-5edf-435e-8f12-57c70e313956",
+		"name": "OMNI-PRO",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33651310"
+	},
+	"item": [
+		{
+			"name": "upload",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "graphql",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"query\": \"query { listEmailStatus(status: [SENT, ERROR], fromDate: \\\"2025-11-03T00:00:00Z\\\", toDate: \\\"2025-11-05T00:00:00Z\\\", limit: 10) { items { emailId batchId email subject status createdAt } nextToken } }\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://3a5f7c9mja.execute-api.us-east-1.amazonaws.com/dev/graphql"
+			},
+			"response": []
+		},
+		{
+			"name": "graphql (con variables)",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"query\": \"query { listEmailStatus(status: [SENT, ERROR], fromDate: \\\"2025-11-03T00:00:00Z\\\", toDate: \\\"2025-11-05T00:00:00Z\\\", limit: 10) { items { emailId batchId email subject status createdAt } nextToken } }\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://3a5f7c9mja.execute-api.us-east-1.amazonaws.com/dev/graphql"
+			},
+			"response": []
+		}
+	]
+}
