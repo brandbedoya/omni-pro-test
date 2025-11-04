@@ -17,7 +17,7 @@ flowchart TD
     Q -->|"Trigger automático"| L2["Lambda WorkerFunction"];
     L2 -->|"UpdateItem estado SENT/ERROR"| D;
     L2 -->|"Logs / métricas"| CW["CloudWatch"];
-    Q --> DLQ["Dead Letter Queue"]:
+    Q --> DLQ["Dead Letter Queue"];
 
 ---
 
